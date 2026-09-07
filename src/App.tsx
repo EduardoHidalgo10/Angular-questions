@@ -1,8 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { ResultsScreen } from "./components/ResultsScreen";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { QuizScreen, StartScreen } from "./components/QuizViews";
 import { QUESTIONS } from "./data/questions";
 import { useQuiz } from "./hooks/useQuiz";
+import { useTheme } from "./hooks/useTheme";
 import { orderByIds } from "./utils/shuffle";
 
 /**
@@ -10,6 +12,7 @@ import { orderByIds } from "./utils/shuffle";
  */
 export default function App() {
   const quiz = useQuiz(QUESTIONS);
+  const { theme, toggleTheme } = useTheme();
   const [showWelcome, setShowWelcome] = useState(true);
   const current = quiz.currentQuestion;
   const orderedOptionIds = useMemo(() => {
@@ -23,70 +26,74 @@ export default function App() {
     return current.options.map((option) => option.id);
   }, [current, quiz.state.optionOrders]);
 
-  if (showWelcome || quiz.state.screen === "start") {
+  /**
+   * Envuelve cada pantalla con el control de tema.
+   */
+  function renderShell(content: ReactNode) {
     return (
       <main className="app-shell">
-        <StartScreen
-          bankSize={QUESTIONS.length}
-          canContinue={quiz.state.questionOrder.length > 0}
-          onStart={(questionCount) => {
-            quiz.start(questionCount);
-            setShowWelcome(false);
-          }}
-          onContinue={() => {
-            quiz.continueQuiz();
-            setShowWelcome(false);
-          }}
-        />
+        <ThemeToggle theme={theme} onToggle={toggleTheme} />
+        {content}
       </main>
+    );
+  }
+
+  if (showWelcome || quiz.state.screen === "start") {
+    return renderShell(
+      <StartScreen
+        bankSize={QUESTIONS.length}
+        canContinue={quiz.state.questionOrder.length > 0}
+        onStart={(questionCount) => {
+          quiz.start(questionCount);
+          setShowWelcome(false);
+        }}
+        onContinue={() => {
+          quiz.continueQuiz();
+          setShowWelcome(false);
+        }}
+      />,
     );
   }
 
   if (quiz.state.screen === "results") {
-    return (
-      <main className="app-shell">
-        <ResultsScreen
-          state={quiz.state}
-          onRetryIncorrect={() => quiz.retryIncorrect()}
-          onRestart={() => {
-            quiz.reset();
-            setShowWelcome(true);
-          }}
-        />
-      </main>
+    return renderShell(
+      <ResultsScreen
+        state={quiz.state}
+        onRetryIncorrect={() => quiz.retryIncorrect()}
+        onRestart={() => {
+          quiz.reset();
+          setShowWelcome(true);
+        }}
+      />,
     );
   }
 
   if (!current) {
-    return (
-      <main className="app-shell">
-        <section className="card">
-          <p>No hay una pregunta activa. Vuelve a comenzar la evaluación.</p>
-        </section>
-      </main>
+    return renderShell(
+      <section className="card">
+        <p>No hay una pregunta activa. Vuelve a comenzar la evaluación.</p>
+      </section>,
     );
   }
 
   const selectedIds = quiz.state.selectedByQuestion[current.id] ?? [];
   const checked = Boolean(quiz.state.checkedByQuestion[current.id]);
 
-  return (
-    <main className="app-shell">
-      <QuizScreen
-        question={{
-          ...current,
-          options: orderByIds(current.options, orderedOptionIds),
-        }}
-        index={quiz.state.currentIndex}
-        total={quiz.state.questionOrder.length}
-        orderedOptionIds={orderedOptionIds}
-        selectedIds={selectedIds}
-        checked={checked}
-        isCorrect={quiz.state.correctByQuestion[current.id]}
-        onToggle={quiz.toggleOption}
-        onCheck={quiz.checkAnswer}
-        onNext={quiz.goNext}
-      />
-    </main>
+  return renderShell(
+    <QuizScreen
+      question={{
+        ...current,
+        options: orderByIds(current.options, orderedOptionIds),
+      }}
+      index={quiz.state.currentIndex}
+      total={quiz.state.questionOrder.length}
+      orderedOptionIds={orderedOptionIds}
+      selectedIds={selectedIds}
+      checked={checked}
+      isCorrect={quiz.state.correctByQuestion[current.id]}
+      onToggle={quiz.toggleOption}
+      onCheck={quiz.checkAnswer}
+      onNext={quiz.goNext}
+    />,
   );
 }

@@ -19,6 +19,7 @@ describe("flujo de la aplicación", () => {
     const user = userEvent.setup();
     render(<App />);
     expect(screen.getByRole("heading", { name: "Angular Senior Interview Trainer" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Activar modo (oscuro|claro)/ })).toBeInTheDocument();
     expect(screen.getByText(/El banco contiene 75 preguntas/)).toBeInTheDocument();
     await user.clear(screen.getByLabelText("Cantidad de preguntas para este examen"));
     await user.type(screen.getByLabelText("Cantidad de preguntas para este examen"), "10");
