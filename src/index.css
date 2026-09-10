@@ -88,7 +88,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -99,6 +100,7 @@ a {
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
+select:focus-visible,
 label:focus-within {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
@@ -216,9 +218,19 @@ h1 {
 
 .field {
   margin: 20px 0;
+  border: 0;
+  padding: 0;
+  min-width: 0;
 }
 
-.field label {
+.field legend {
+  font-weight: 600;
+  margin-bottom: 8px;
+  padding: 0;
+}
+
+.field > label,
+.nested-field > label {
   display: block;
   font-weight: 600;
   margin-bottom: 8px;
@@ -232,6 +244,42 @@ h1 {
   border-radius: 8px;
   background: var(--input-bg);
   color: inherit;
+}
+
+.field select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: inherit;
+}
+
+.nested-field {
+  margin: 12px 0 0;
+}
+
+.choice-list {
+  display: grid;
+  gap: 10px;
+}
+
+.field .choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 0;
+  font-weight: 400;
+  border: 1px solid var(--option-border);
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.choice input {
+  margin-top: 4px;
+  width: auto;
+  max-width: none;
 }
 
 .meta-row,

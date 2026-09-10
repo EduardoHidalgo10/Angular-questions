@@ -41,10 +41,10 @@ export default function App() {
   if (showWelcome || quiz.state.screen === "start") {
     return renderShell(
       <StartScreen
-        bankSize={QUESTIONS.length}
+        questions={QUESTIONS}
         canContinue={quiz.state.questionOrder.length > 0}
-        onStart={(questionCount) => {
-          quiz.start(questionCount);
+        onStart={(questionCount, category) => {
+          quiz.start(questionCount, category);
           setShowWelcome(false);
         }}
         onContinue={() => {

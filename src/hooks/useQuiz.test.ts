@@ -79,4 +79,15 @@ describe("puntuación y persistencia", () => {
     expect(clampQuestionCount(0, 75)).toBe(1);
     expect(clampQuestionCount(200, 75)).toBe(75);
   });
+
+  it("filtra el banco por categoría al iniciar", () => {
+    const { result } = renderHook(() => useQuiz(QUESTIONS));
+    act(() => {
+      result.current.start(4, "Router");
+    });
+    expect(result.current.state.questionOrder).toHaveLength(4);
+    for (const questionId of result.current.state.questionOrder) {
+      expect(QUESTIONS.find((question) => question.id === questionId)?.category).toBe("Router");
+    }
+  });
 });

@@ -33,4 +33,15 @@ describe("flujo de la aplicación", () => {
     expect(screen.getByRole("button", { name: "Siguiente" })).toBeEnabled();
     expect(localStorage.getItem("angular-senior-interview-trainer")).toBeTruthy();
   });
+
+  it("permite iniciar una evaluación filtrada por tema específico", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("radio", { name: "Seleccionar tema específico" }));
+    await user.selectOptions(screen.getByLabelText("Tema específico"), "Router");
+    expect(screen.getByLabelText("Cantidad de preguntas para este examen")).toHaveValue(4);
+    await user.click(screen.getByRole("button", { name: "Comenzar evaluación" }));
+    expect(screen.getByText(/Pregunta 1 de 4/)).toBeInTheDocument();
+    expect(screen.getByText("Router")).toBeInTheDocument();
+  });
 });

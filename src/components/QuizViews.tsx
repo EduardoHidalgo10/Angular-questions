@@ -1,32 +1,66 @@
 import { useMemo, useState } from "react";
-import type { Question } from "../types/question";
+import { CATEGORIES, type Category, type Question } from "../types/question";
 import { clampQuestionCount } from "../utils/score";
 
+/**
+ * Representa si el examen cubre todo el banco o una sola categoría.
+ */
+type TopicMode = "all" | "specific";
+
 interface StartScreenProps {
-  bankSize: number;
+  questions: Question[];
   canContinue: boolean;
-  onStart: (questionCount: number) => void;
+  onStart: (questionCount: number, category?: Category) => void;
   onContinue: () => void;
+}
+
+/**
+ * Calcula cuántas preguntas hay en cada categoría del banco.
+ */
+function countByCategory(questions: readonly Question[]): Map<Category, number> {
+  const counts = new Map<Category, number>();
+  for (const question of questions) {
+    counts.set(question.category, (counts.get(question.category) ?? 0) + 1);
+  }
+  return counts;
 }
 
 /**
  * Presenta la pantalla inicial, el tamaño del examen y las acciones para comenzar o continuar.
  */
 export function StartScreen({
-  bankSize,
+  questions,
   canContinue,
   onStart,
   onContinue,
 }: StartScreenProps) {
+  const bankSize = questions.length;
+  const defaultCategory = CATEGORIES[0] ?? "TypeScript, clases y orientación a objetos";
+  const [topicMode, setTopicMode] = useState<TopicMode>("all");
+  const [selectedCategory, setSelectedCategory] = useState<Category>(defaultCategory);
   const [countInput, setCountInput] = useState(String(bankSize));
+  const categoryCounts = useMemo(() => countByCategory(questions), [questions]);
+  const poolSize =
+    topicMode === "all" ? bankSize : (categoryCounts.get(selectedCategory) ?? 0);
   const parsedCount = Number(countInput);
   const isValidCount =
-    Number.isInteger(parsedCount) && parsedCount >= 1 && parsedCount <= bankSize;
-  const selectedCount = isValidCount ? parsedCount : bankSize;
+    Number.isInteger(parsedCount) && parsedCount >= 1 && parsedCount <= poolSize;
+  const selectedCount = isValidCount ? parsedCount : poolSize;
   const estimatedMinutes = useMemo(
     () => Math.max(1, Math.round(selectedCount * 1.5)),
     [selectedCount],
   );
+
+  /**
+   * Actualiza el modo de tema y ajusta la cantidad de preguntas al nuevo pool.
+   */
+  function applyTopicMode(nextMode: TopicMode, nextCategory = selectedCategory) {
+    setTopicMode(nextMode);
+    setSelectedCategory(nextCategory);
+    const nextPoolSize =
+      nextMode === "all" ? bankSize : (categoryCounts.get(nextCategory) ?? 0);
+    setCountInput(String(nextPoolSize));
+  }
 
   return (
     <section className="card" aria-labelledby="app-title">
@@ -37,13 +71,59 @@ export function StartScreen({
         originales basadas en la documentación oficial vigente.
       </p>
       <p className="muted">El banco contiene {bankSize} preguntas.</p>
+      <fieldset className="field">
+        <legend>Tema a practicar</legend>
+        <div className="choice-list">
+          <label className="choice">
+            <input
+              type="radio"
+              name="topic-mode"
+              value="all"
+              checked={topicMode === "all"}
+              onChange={() => applyTopicMode("all")}
+            />
+            <span>Todos los temas ({bankSize} preguntas)</span>
+          </label>
+          <label className="choice">
+            <input
+              type="radio"
+              name="topic-mode"
+              value="specific"
+              checked={topicMode === "specific"}
+              onChange={() => applyTopicMode("specific")}
+            />
+            <span>Seleccionar tema específico</span>
+          </label>
+        </div>
+        {topicMode === "specific" ? (
+          <div className="field nested-field">
+            <label htmlFor="topic-category">Tema específico</label>
+            <select
+              id="topic-category"
+              value={selectedCategory}
+              onChange={(event) => {
+                const nextCategory = CATEGORIES.find((category) => category === event.target.value);
+                if (nextCategory) {
+                  applyTopicMode("specific", nextCategory);
+                }
+              }}
+            >
+              {CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {category} ({categoryCounts.get(category) ?? 0})
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+      </fieldset>
       <div className="field">
         <label htmlFor="question-count">Cantidad de preguntas para este examen</label>
         <input
           id="question-count"
           type="number"
           min={1}
-          max={bankSize}
+          max={poolSize}
           step={1}
           value={countInput}
           onChange={(event) => setCountInput(event.target.value)}
@@ -51,7 +131,7 @@ export function StartScreen({
         <p className="muted">
           {isValidCount
             ? `Esta evaluación usará ${selectedCount} preguntas. Tiempo estimado: ${estimatedMinutes} minutos.`
-            : `Elige un número entero entre 1 y ${bankSize}.`}
+            : `Elige un número entero entre 1 y ${poolSize}.`}
         </p>
       </div>
       <p className="muted">
@@ -63,7 +143,12 @@ export function StartScreen({
           type="button"
           className="btn"
           disabled={!isValidCount}
-          onClick={() => onStart(clampQuestionCount(parsedCount, bankSize))}
+          onClick={() =>
+            onStart(
+              clampQuestionCount(parsedCount, poolSize),
+              topicMode === "specific" ? selectedCategory : undefined,
+            )
+          }
         >
           Comenzar evaluación
         </button>

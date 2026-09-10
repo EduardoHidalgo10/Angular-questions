@@ -1,6 +1,6 @@
 import { useCallback, useReducer } from "react";
 import { questionsById } from "../data/questions";
-import type { PersistedQuiz, Question } from "../types/question";
+import type { Category, PersistedQuiz, Question } from "../types/question";
 import { clampQuestionCount, isExactMatch } from "../utils/score";
 import { shuffle } from "../utils/shuffle";
 import { clearQuiz, loadQuiz, saveQuiz } from "../utils/storage";
@@ -175,8 +175,11 @@ export function useQuiz(bank: Question[]) {
   );
 
   const start = useCallback(
-    (questionCount = bank.length) => {
-      const next = startAttempt(bank, undefined, questionCount);
+    (questionCount = bank.length, category?: Category) => {
+      const subsetIds = category
+        ? bank.filter((question) => question.category === category).map((question) => question.id)
+        : undefined;
+      const next = startAttempt(bank, subsetIds, questionCount);
       saveQuiz(toPersisted(next));
       dispatch({ type: "hydrate", payload: next });
     },
